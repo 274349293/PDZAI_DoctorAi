@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>医药销售拜访复盘分析系统</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0;
+            min-height: 80vh;
+        }
+
+        .input-section {
+            padding: 30px;
+            background: #f8f9fa;
+            border-right: 1px solid #e9ecef;
+        }
+
+        .output-section {
+            padding: 30px;
+            background: white;
+        }
+
+        .section-title {
+            font-size: 1.4em;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #3498db;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #34495e;
+        }
+
+        textarea {
+            width: 100%;
+            height: 400px;
+            padding: 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            font-size: 14px;
+            font-family: 'Courier New', monospace;
+            resize: vertical;
+            transition: border-color 0.3s ease;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+        }
+
+        .example-hint {
+            background: #e8f4fd;
+            border-left: 4px solid #3498db;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .example-hint h4 {
+            color: #2980b9;
+            margin-bottom: 8px;
+        }
+
+        .example-hint pre {
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            overflow-x: auto;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(52, 152, 219, 0.3);
+        }
+
+        .btn:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #7f8c8d;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .analysis-result {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .analysis-section {
+            margin-bottom: 25px;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            border-left: 4px solid #3498db;
+        }
+
+        .analysis-section h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+        }
+
+        .analysis-item {
+            background: #f1f2f6;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            border-left: 3px solid #e74c3c;
+        }
+
+        .analysis-item.positive {
+            border-left-color: #27ae60;
+        }
+
+        .analysis-item h4 {
+            color: #2c3e50;
+            margin-bottom: 8px;
+        }
+
+        .analysis-item p {
+            margin-bottom: 5px;
+            line-height: 1.6;
+        }
+
+        .download-section {
+            text-align: center;
+            padding: 20px;
+            border-top: 1px solid #e9ecef;
+        }
+
+        .btn-download {
+            background: linear-gradient(135deg, #27ae60 0%, #229954 100%);
+            display: inline-block;
+            text-decoration: none;
+            margin: 0 10px;
+        }
+
+        .error {
+            background: #e74c3c;
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .success {
+            background: #27ae60;
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        @media (max-width: 1024px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+
+            .input-section {
+                border-right: none;
+                border-bottom: 1px solid #e9ecef;
+            }
+        }
+
+        .json-viewer {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 25px;
+            border-radius: 10px;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            max-height: 600px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            border: 1px solid #4a5568;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .json-viewer::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .json-viewer::-webkit-scrollbar-track {
+            background: #1a202c;
+            border-radius: 4px;
+        }
+
+        .json-viewer::-webkit-scrollbar-thumb {
+            background: #4a5568;
+            border-radius: 4px;
+        }
+
+        .json-viewer::-webkit-scrollbar-thumb:hover {
+            background: #718096;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>医药销售拜访复盘分析系统</h1>
+            <p>基于AI的智能分析，提升销售拜访技巧与专业能力</p>
+        </header>
+
+        <div class="main-content">
+            <!-- 输入区域 -->
+            <div class="input-section">
+                <h2 class="section-title">📝 对话输入</h2>
+
+                <div class="example-hint">
+                    <h4>💡 输入格式提示</h4>
+                    <p>支持以下两种格式：</p>
+                    <pre>1. JSON格式：
+{
+  "产品名称": "安维汀",
+  "推广目标": "让该医院引进使用安维汀",
+  "对话记录": [
+    {"序号": 1, "发言人": "小王", "内容": "李主任，下午好..."},
+    {"序号": 2, "发言人": "李主任", "内容": "嗯，你好..."}
+  ]
+}
+
+2. 纯文本格式：
+小王: 李主任，下午好，看您刚忙完门诊，辛苦了。
+李主任: 嗯，你好，有事吗？
+小王: 主任，我是XX公司的...</pre>
+                </div>
+
+                <div class="form-group">
+                    <label for="dialogue-input">对话内容</label>
+                    <textarea
+                        id="dialogue-input"
+                        placeholder="请在此粘贴销售拜访对话内容..."
+                    ></textarea>
+                </div>
+
+                <button class="btn" id="analyze-btn" onclick="analyzeDialogue()">
+                    🔍 开始分析
+                </button>
+            </div>
+
+            <!-- 输出区域 -->
+            <div class="output-section">
+                <h2 class="section-title">📊 分析结果</h2>
+
+                <div id="output-content">
+                    <div style="text-align: center; padding: 60px 20px; color: #7f8c8d;">
+                        <div style="font-size: 3em; margin-bottom: 20px;">🤖</div>
+                        <h3>等待分析</h3>
+                        <p>请在左侧输入对话内容，然后点击"开始分析"按钮</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let analysisData = null;
+
+        async function analyzeDialogue() {
+            const dialogueText = document.getElementById('dialogue-input').value.trim();
+            const analyzeBtn = document.getElementById('analyze-btn');
+            const outputContent = document.getElementById('output-content');
+
+            console.log('开始分析对话...');
+            console.log('对话内容长度:', dialogueText.length);
+
+            if (!dialogueText) {
+                outputContent.innerHTML = '<div class="error">❌ 请输入对话内容</div>';
+                return;
+            }
+
+            // 显示加载状态
+            analyzeBtn.disabled = true;
+            analyzeBtn.textContent = '🔄 分析中...';
+
+            outputContent.innerHTML = `
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <h3>AI正在分析中...</h3>
+                    <p>阶段一：基础拜访技巧分析</p>
+                    <p>阶段二：专业知识评判</p>
+                    <p>这可能需要30-60秒，请耐心等待</p>
+                </div>
+            `;
+
+            try {
+                console.log('发送请求到服务器...');
+                const response = await fetch('/analyze', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        dialogue: dialogueText
+                    })
+                });
+
+                console.log('收到服务器响应:', response.status);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const result = await response.json();
+                console.log('分析结果:', result);
+
+                if (result.success) {
+                    analysisData = result.analysis;
+                    displayAnalysis(result.analysis);
+                } else {
+                    outputContent.innerHTML = `<div class="error">❌ ${result.error}</div>`;
+                }
+            } catch (error) {
+                console.error('分析失败:', error);
+                outputContent.innerHTML = `
+                    <div class="error">
+                        ❌ 分析失败: ${error.message}
+                        <br><br>
+                        <strong>可能的原因：</strong>
+                        <ul style="text-align: left; margin-top: 10px;">
+                            <li>网络连接问题</li>
+                            <li>Azure OpenAI API配置错误</li>
+                            <li>服务器内部错误</li>
+                        </ul>
+                        <br>
+                        请检查浏览器控制台获取更多信息。
+                    </div>
+                `;
+            } finally {
+                analyzeBtn.disabled = false;
+                analyzeBtn.textContent = '🔍 开始分析';
+            }
+        }
+
+        function displayAnalysis(analysis) {
+            const outputContent = document.getElementById('output-content');
+
+            // 直接显示完整的JSON内容
+            const jsonStr = JSON.stringify(analysis, null, 2);
+
+            outputContent.innerHTML = `
+                <div class="success">✅ 分析完成</div>
+
+                <div class="analysis-section">
+                    <h3>📊 完整分析结果</h3>
+                    <div class="json-viewer">${jsonStr}</div>
+                </div>
+
+                <div class="download-section">
+                    <button class="btn btn-download" onclick="downloadJSON()">
+                        📥 下载JSON格式
+                    </button>
+                </div>
+            `;
+        }
+
+        function downloadJSON() {
+            if (!analysisData) return;
+
+            const dataStr = JSON.stringify(analysisData, null, 2);
+            const dataBlob = new Blob([dataStr], {type: 'application/json'});
+            const url = URL.createObjectURL(dataBlob);
+
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `销售拜访分析_${new Date().toISOString().slice(0,19).replace(/:/g, '-')}.json`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        }
+
+        function showRawJSON() {
+            // 已经是显示JSON了，所以这个函数现在不需要改变什么
+            console.log('当前已经显示完整JSON数据');
+        }
+
+        // 支持键盘快捷键
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.key === 'Enter') {
+                analyzeDialogue();
+            }
+        });
+
+        // 页面加载完成后的提示
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('医药销售拜访复盘分析系统已启动');
+            console.log('快捷键: Ctrl+Enter 开始分析');
+        });
+    </script>
+</body>
+</html>
