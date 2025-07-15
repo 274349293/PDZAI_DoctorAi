@@ -10,8 +10,8 @@ app = Flask(__name__)
 
 # Azure OpenAI 配置
 client = AzureOpenAI(
-    api_key="",
-    azure_endpoint="",
+    api_key="83Vfoh4WgZy7yHi87xT0kziJnY7SyWzjn2pnUMxgXbi2xt1DPxnyJQQJ99BGACYeBjFXJ3w3AAABACOGw52F",
+    azure_endpoint="https://daotest250701.openai.azure.com/openai/deployments/gpt-4o/chat/completions?",
     api_version="2025-01-01-preview",  # 请替换为您的API版本
 )
 
