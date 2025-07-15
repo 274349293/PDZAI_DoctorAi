@@ -52,10 +52,14 @@ def load_knowledge_base():
         with open('data/安维汀.json', 'r', encoding='utf-8') as f:
             avastin_knowledge = json.load(f)
 
-        return evaluation_standards, avastin_knowledge
+        # 加载艾加莫德专业知识
+        with open('data/艾加莫德.json', 'r', encoding='utf-8') as f:
+            efgartigimod_knowledge = json.load(f)
+
+        return evaluation_standards, avastin_knowledge, efgartigimod_knowledge
     except Exception as e:
         print(f"加载知识库失败: {e}")
-        return None, None
+        return None, None, None
 
 
 def parse_dialogue_input(dialogue_text):
@@ -68,7 +72,7 @@ def parse_dialogue_input(dialogue_text):
         else:
             # 如果不是标准格式，创建一个基本结构
             return {
-                "产品名称": "安维汀",
+                "产品名称": dialogue_data.get("产品名称", "未知产品"),
                 "对话记录": dialogue_data if isinstance(dialogue_data, list) else []
             }
     except json.JSONDecodeError:
@@ -91,13 +95,13 @@ def parse_dialogue_input(dialogue_text):
                         })
 
         return {
-            "产品名称": "安维汀",
+            "产品名称": "未知产品",
             "对话记录": dialogue_records
         }
 
 
 def stage1_basic_analysis(dialogue_data, evaluation_standards):
-    """阶段一：基础拜访技巧分析"""
+    """阶段一：基础拜访技巧分析（包含CTA计算）"""
 
     # 构造对话文本
     dialogue_text = ""
@@ -111,13 +115,13 @@ def stage1_basic_analysis(dialogue_data, evaluation_standards):
 
     prompt = f"""你是一位资深的医药销售培训专家，专门负责分析和评估医药代表的拜访技巧。
 
-请根据以下医药销售拜访评估标准，对提供的对话进行详细分析：
+请根据以下医药销售拜访评估标准，对提供的对话进行详细分析，特别关注客户时间账户(CTA)的影响：
 
 评估标准：
 {json.dumps(evaluation_standards, ensure_ascii=False, indent=2)}
 
 需要分析的对话：
-产品名称：{dialogue_data.get('产品名称', '安维汀')}
+产品名称：{dialogue_data.get('产品名称', '未知产品')}
 推广目标：{promotion_goal}
 
 对话内容：
@@ -141,7 +145,9 @@ def stage1_basic_analysis(dialogue_data, evaluation_standards):
             "具体表现": "详细说明"
           }}
         }},
-        "涉及阶段": "对应的拜访阶段"
+        "涉及阶段": "对应的拜访阶段",
+        "CTA影响": "具体的时间影响数值（如-90秒）",
+        "CTA描述": "对应的CTA影响描述"
       }}
     ]
   }},
@@ -160,9 +166,24 @@ def stage1_basic_analysis(dialogue_data, evaluation_standards):
             "具体表现": "详细说明"
           }}
         }},
-        "涉及阶段": "对应的拜访阶段"
+        "涉及阶段": "对应的拜访阶段",
+        "CTA影响": "具体的时间影响数值（如+60秒）",
+        "CTA描述": "对应的CTA影响描述"
       }}
     ]
+  }},
+  "客户时间账户影响分析": {{
+    "初始CTA": 300,
+    "各阶段CTA变化": [
+      {{
+        "阶段": "具体阶段名称",
+        "行为": "具体行为描述",
+        "CTA变化": "±XX秒",
+        "累计CTA": "当前累计值"
+      }}
+    ],
+    "最终CTA余额": "最终计算结果",
+    "CTA评估": "对最终CTA余额的评价和说明"
   }},
   "医生的关键顾虑": {{
     "顾虑1": "提取的医生顾虑",
@@ -187,8 +208,10 @@ def stage1_basic_analysis(dialogue_data, evaluation_standards):
 注意：
 1. 请仔细分析每个拜访阶段的表现
 2. 重点关注销售代表的沟通技巧、异议处理能力、产品介绍方式等
-3. 分析要客观、具体，有明确的对话依据
-4. 输出必须是有效的JSON格式
+3. 必须包含CTA（客户时间账户）的详细计算过程
+4. 初始CTA为300秒，根据各项加减分计算最终余额
+5. 分析要客观、具体，有明确的对话依据
+6. 输出必须是有效的JSON格式
 """
 
     messages = [{"role": "user", "content": prompt}]
@@ -210,13 +233,19 @@ def stage1_basic_analysis(dialogue_data, evaluation_standards):
         return {
             "减分项分析": {"分析项目": []},
             "加分项分析": {"分析项目": []},
+            "客户时间账户影响分析": {
+                "初始CTA": 300,
+                "各阶段CTA变化": [],
+                "最终CTA余额": 300,
+                "CTA评估": "分析失败"
+            },
             "医生的关键顾虑": {},
             "总结评估": {"整体特征": "分析失败", "优点": [], "核心问题": [], "根本问题": "", "改进建议": ""},
             "原始回复": response
         }
 
 
-def stage2_professional_analysis(dialogue_data, basic_analysis, avastin_knowledge):
+def stage2_professional_analysis(dialogue_data, basic_analysis, knowledge_base):
     """阶段二：专业知识评判"""
 
     dialogue_text = ""
@@ -225,13 +254,28 @@ def stage2_professional_analysis(dialogue_data, basic_analysis, avastin_knowledg
         content = record.get("内容", "")
         dialogue_text += f"{speaker}: {content}\n"
 
+    # 根据产品名称选择合适的知识库
+    product_name = dialogue_data.get('产品名称', '').lower()
+    selected_knowledge = {}
+
+    if '安维汀' in product_name or 'avastin' in product_name.lower():
+        selected_knowledge = knowledge_base[1]  # 安维汀知识库
+        product_type = "安维汀"
+    elif '艾加莫德' in product_name or 'efgartigimod' in product_name.lower():
+        selected_knowledge = knowledge_base[2]  # 艾加莫德知识库
+        product_type = "艾加莫德"
+    else:
+        # 默认使用安维汀知识库
+        selected_knowledge = knowledge_base[1]
+        product_type = "通用药品"
+
     prompt = f"""你是一位医药专业知识专家，现在需要你基于已有的基础分析，补充关于药品专业性的评判。
 
 基础分析结果：
 {json.dumps(basic_analysis, ensure_ascii=False, indent=2)}
 
-安维汀专业知识库：
-{json.dumps(avastin_knowledge, ensure_ascii=False, indent=2)}
+{product_type}专业知识库：
+{json.dumps(selected_knowledge, ensure_ascii=False, indent=2)}
 
 原始对话：
 {dialogue_text}
@@ -300,11 +344,12 @@ def stage2_professional_analysis(dialogue_data, basic_analysis, avastin_knowledg
 
 
 def merge_analyses(basic_analysis, professional_analysis, dialogue_data):
-    """合并两阶段的分析结果并计算推广目标得分"""
+    """合并两阶段的分析结果（移除score字段）"""
     final_analysis = {
         "标题": "医药销售拜访对话复盘分析",
         "分析时间": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "分析标准来源": "基于拜访评估标准体系的五个阶段：破冰与价值开场、深度需求探询、价值信息传递、专业异议处理、承诺与行动缔结"
+        "分析标准来源": "基于拜访评估标准体系的五个阶段：破冰与价值开场、深度需求探询、价值信息传递、专业异议处理、承诺与行动缔结",
+        "产品名称": dialogue_data.get('产品名称', '未知产品')
     }
 
     # 合并基础分析
@@ -314,54 +359,7 @@ def merge_analyses(basic_analysis, professional_analysis, dialogue_data):
     if "药品专业性评判" in professional_analysis:
         final_analysis.update(professional_analysis)
 
-    # 计算推广目标得分
-    score = calculate_promotion_score(basic_analysis, professional_analysis, dialogue_data)
-    final_analysis["score"] = score
-
     return final_analysis
-
-
-def calculate_promotion_score(basic_analysis, professional_analysis, dialogue_data):
-    """根据推广目标完成情况计算得分 (0-100分)"""
-    try:
-        base_score = 60  # 基础分数
-
-        # 加分项评估 (最多+20分)
-        add_points = 0
-        if basic_analysis.get("加分项分析", {}).get("分析项目"):
-            add_points = min(len(basic_analysis["加分项分析"]["分析项目"]) * 5, 20)
-
-        # 减分项扣分 (最多-30分)
-        minus_points = 0
-        if basic_analysis.get("减分项分析", {}).get("分析项目"):
-            minus_points = min(len(basic_analysis["减分项分析"]["分析项目"]) * 8, 30)
-
-        # 专业性加分 (最多+10分)
-        professional_points = 0
-        if professional_analysis.get("药品专业性评判", {}).get("总体专业性评估"):
-            eval_text = professional_analysis["药品专业性评判"]["总体专业性评估"]
-            if "优秀" in eval_text or "专业" in eval_text:
-                professional_points = 10
-            elif "良好" in eval_text:
-                professional_points = 5
-
-        # 推广目标完成度加分 (最多+20分)
-        goal_points = 0
-        if basic_analysis.get("推广目标完成度评估"):
-            completion_text = basic_analysis["推广目标完成度评估"].get("完成度分析", "")
-            if "成功" in completion_text or "达成" in completion_text:
-                goal_points = 20
-            elif "部分" in completion_text:
-                goal_points = 10
-            elif "未达成" in completion_text or "失败" in completion_text:
-                goal_points = -10
-
-        final_score = base_score + add_points - minus_points + professional_points + goal_points
-        return max(0, min(100, final_score))  # 确保分数在0-100之间
-
-    except Exception as e:
-        print(f"计算得分时出错: {e}")
-        return 60  # 默认分数
 
 
 @app.route('/')
@@ -389,8 +387,8 @@ def analyze():
 
         # 加载知识库
         print("正在加载知识库...")
-        evaluation_standards, avastin_knowledge = load_knowledge_base()
-        if not evaluation_standards or not avastin_knowledge:
+        knowledge_base = load_knowledge_base()
+        if not knowledge_base[0] or not knowledge_base[1] or not knowledge_base[2]:
             print("错误: 知识库加载失败")
             return jsonify({"error": "知识库加载失败，请检查data目录下的JSON文件"}), 500
 
@@ -404,18 +402,18 @@ def analyze():
 
         # 阶段一：基础分析
         print("=== 开始阶段一：基础拜访技巧分析 ===")
-        basic_analysis = stage1_basic_analysis(dialogue_data, evaluation_standards)
+        basic_analysis = stage1_basic_analysis(dialogue_data, knowledge_base[0])
         print("阶段一分析完成")
 
         # 阶段二：专业分析
         print("=== 开始阶段二：专业知识评判 ===")
-        professional_analysis = stage2_professional_analysis(dialogue_data, basic_analysis, avastin_knowledge)
+        professional_analysis = stage2_professional_analysis(dialogue_data, basic_analysis, knowledge_base)
         print("阶段二分析完成")
 
         # 合并分析结果
         print("正在合并分析结果...")
         final_analysis = merge_analyses(basic_analysis, professional_analysis, dialogue_data)
-        print(f"最终分析完成，得分: {final_analysis.get('score', 'N/A')}")
+        print("最终分析完成")
 
         print("=== 分析请求完成 ===")
         return jsonify({
