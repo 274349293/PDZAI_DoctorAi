@@ -16,19 +16,13 @@ client = AzureOpenAI(
 )
 
 
-def chat_completion(messages, model="gpt-4o", temperature=0.85, retry_count=5):
+def chat_completion(messages, model="o3", temperature=0.85, retry_count=5):
     """调用GPT进行对话分析"""
     if retry_count == 0:
         return ""
     try:
         response = client.chat.completions.create(
             model=model,
-            temperature=temperature,
-            max_tokens=4000,
-            top_p=0.95,
-            frequency_penalty=0,
-            presence_penalty=0,
-            stop=None,
             messages=messages
         )
         res_content = response.choices[0].message.content.strip()
@@ -205,11 +199,16 @@ def stage1_basic_analysis(dialogue_data, evaluation_standards):
   }}
 }}
 
-注意：
-1. 请仔细分析每个拜访阶段的表现
-2. 重点关注销售代表的沟通技巧、异议处理能力、产品介绍方式等
-3. 必须包含CTA（客户时间账户）的详细计算过程
-4. 初始CTA为300秒，根据各项加减分计算最终余额
+**重要注意事项：**
+1. **不是每句话都需要加减分**：只对真正有明显影响的关键行为进行评估，普通的信息交流对话不需要强制评分
+2. **加减分标准**：只有当销售代表的行为明显符合评估标准中的加分项或减分项时才评分
+3. **重点关注的行为**：
+   - 开场方式（个性化vs自我中心）
+   - 需求探询技巧（挖掘隐含需求vs审问式提问）
+   - 信息传递方式（精准匹配需求vs产品说明书式背诵）
+   - 异议处理能力（专业化解vs立刻反驳）
+   - 缔结技巧（具体行动建议vs没有缔结）
+4. **CTA计算原则**：基于实际的加减分行为计算，不要为了凑数而强制给每个环节都加减分
 5. 分析要客观、具体，有明确的对话依据
 6. 输出必须是有效的JSON格式
 """
