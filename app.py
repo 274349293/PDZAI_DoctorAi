@@ -11,7 +11,7 @@ app = Flask(__name__)
 # Azure OpenAI 配置
 client = AzureOpenAI(
     api_key="",
-    azure_endpoint="",
+    azure_endpoint="https://.openai.azure.com/openai/deployments/o3/chat/completions?",
     api_version="2025-01-01-preview",  # 请替换为您的API版本
 )
 
