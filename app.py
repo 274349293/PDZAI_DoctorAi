@@ -43,11 +43,11 @@ def load_knowledge_base():
             evaluation_standards = json.load(f)
 
         # 加载安维汀专业知识
-        with open('data/安维汀.json', 'r', encoding='utf-8') as f:
+        with open('data/kg/安维汀.json', 'r', encoding='utf-8') as f:
             avastin_knowledge = json.load(f)
 
         # 加载艾加莫德专业知识
-        with open('data/艾加莫德.json', 'r', encoding='utf-8') as f:
+        with open('data/kg/艾加莫德.json', 'r', encoding='utf-8') as f:
             efgartigimod_knowledge = json.load(f)
 
         return evaluation_standards, avastin_knowledge, efgartigimod_knowledge
